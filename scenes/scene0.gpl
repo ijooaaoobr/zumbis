@@ -1,0 +1,11 @@
+GIMP Palette
+Name: Paleta de cores
+Columns: 0
+#
+  0   0   0	chao
+ 48   0 255	ceu
+255   0   0	nuvem
+111 249  68	zombie1
+  0 141   0	zombie2
+255  75 237	jogador
+ 24 247 255	estrelas
