@@ -20,13 +20,13 @@ class Zombie(Actor):
     def on_over(self, outro):
          if isinstance(outro, Jogador):
               outro.kill()
-     
+  
 class Zombie1(Zombie):
   
     def on_touch(self, other):
-        if isinstance(outro, Tiro):
+        if isinstance(other, Tiro):
             self.kill()
-              
+   
 class Zombie2(Zombie):
     pass
 
