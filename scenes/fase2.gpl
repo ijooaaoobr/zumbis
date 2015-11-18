@@ -1,0 +1,10 @@
+GIMP Palette
+Name: fase2
+Columns: 0
+#
+  0   0   0	madeira
+255   0 255	jogador
+  0 255   0	zumbi
+127   0   0	zumbiforte
+  0 255 255	madeirafinal
+  0   0 127	agua

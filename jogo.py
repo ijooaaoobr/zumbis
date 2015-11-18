@@ -5,54 +5,133 @@ sys.path.append(os.getcwd() + "/mapengine/")
 
 from mapengine import Scene, simpleloop
 
-from mapengine.base import Actor, Hero, GameObject
+from mapengine.base import Actor, Hero, GameObject, Event
+
 
 class Zombie(Actor):
-    move_rate = 12
-
+    move_rate = 14
+    poder = 1
     def update(self):
         if not self.tick % self.move_rate:
             self.move((-1, 0))
             if self.pos[0] < 0:
                 self.kill()
         super(Zombie, self).update()
-   
+
+        if self.pos[0] < 0:
+            try:
+                jogador = self.controller.main_character.sprites()[0]
+            except (AttributeError, IndexError):
+                return
+            jogador.vida -= self.poder
+            print ("Zumbi escapou - você perdeu {} de vida. Vida: {}".format(self.poder, jogador.vida))
+                  
+        
     def on_over(self, outro):
          if isinstance(outro, Jogador):
+              outro.tirarvida()
+              self.kill()
+              
+         elif isinstance(outro, Tiro):
+              self.kill()
               outro.kill()
-     
+
+
+             
 class Zombie1(Zombie):
-  
-    def on_touch(self, other):
-        if isinstance(outro, Tiro):
-            self.kill()
+    pass
               
 class Zombie2(Zombie):
+    poder = 2
     pass
 
 class Estrelas(Actor):
+    def on_over(self, other):
+        if isinstance(other, Jogador):
+            self.kill()
+            other.vida += 3
+            print ("Voce ganhou 3 de vida")
+            
+class Chaofase2(GameObject):
+    def on_touch(self, other):
+       cena = Scene("fase2")
+       self.controller.load_scene(cena)
+       self.controller.force_redraw = True
+
+class Zumbi(Zombie):
     pass
 
+class ZumbiForte(Zombie):
+    poder = 5
+    
 class Tiro(Actor):
-    move_rate = 2
+    move_rate = 1
     def update(self):
         self.move((1, 0)) 
-        super(Tiro, self).update()
+        super(Tiro, self).update()  
+        if not self.controller.is_position_on_screen(self.pos):
+            self.kill()
+
+class Agua(GameObject):
+    def on_over(self, other):
+        if isinstance(other, Jogador):
+            other.kill()
 
 class Jogador(Hero):
+    firetick = 0
+    fire_rate = 20
+    vida = 20
+    margin = 5
     def on_fire(self):
+        if self.tick - self.firetick < self.fire_rate:
+             return
+        self.firetick = self.tick
         pos = self.pos[0] + 1, self.pos[1]
         tiro = Tiro(self.controller, pos)
         self.controller.all_actors.add(tiro)
         # self.controller.actors["tiro"].add(tiro)
+       
+    def move(self, direction):
+        scene = self.controller.scene
+        if (direction[0] == 1 and self.pos[0] >= scene.width - 1 or 
+            direction[0] == -1 and self.pos[0] <= 0 or
+            direction[1] == 1 and self.pos[1] >= scene.height - 1 or 
+            direction[1] == -1 and self.pos[1] <= 0):
+            return 
+        return super(Jogador, self).move(direction)
     
+    def update(self):
+        super(Jogador, self).update()
+        if self.vida <= 0:
+            self.kill()
+            
+    def tirarvida(self):
+        self.vida -= 5 
+        print ("Zumbi Te acertou - você perdeu 5 de vida. Vida: {}".format(self.vida))             
+    
+   
 class Ceu(GameObject):
     hardness = 5
 
+class Madeirafinal(GameObject):
+    def on_over(self, other):
+        if isinstance(other, Jogador):
+            other.show_text(u"Achei a Saída", duration=3)
+            other.events.add(Event(30, self.fim, None))
+    def  fim(self):
+        import pygame, sys
+        
+        pygame.quit()
+        print("Parabens, voce ganhou!!!\n")
+        sys.exit(0)
+
 
 def main():
-    scene = Scene("scene0",)
-    simpleloop(scene, (800, 600),)
+    scene = Scene("fase2",)
+    scene.margin = 0
+    scene.window_height = 9
+    # scene.window_width = 9
+    simpleloop(scene, (800, 400),)
 
 
 main()
