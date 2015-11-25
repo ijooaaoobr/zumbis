@@ -5,7 +5,7 @@ sys.path.append(os.getcwd() + "/mapengine/")
 
 from mapengine import Scene, simpleloop
 
-from mapengine.base import Actor, Hero, GameObject, Event
+from mapengine.base import Actor, Hero, GameObject, Event, Directions
 
 
 class Zombie(Actor):
@@ -42,7 +42,7 @@ class Zombie1(Zombie):
     pass
               
 class Zombie2(Zombie):
-    poder = 2
+    poder = 1
     pass
 
 class Estrelas(Actor):
@@ -63,11 +63,13 @@ class Zumbi(Zombie):
 
 class ZumbiForte(Zombie):
     poder = 5
+    pass
     
 class Tiro(Actor):
     move_rate = 1
+    direction = None
     def update(self):
-        self.move((1, 0)) 
+        self.move(self.direction) 
         super(Tiro, self).update()  
         if not self.controller.is_position_on_screen(self.pos):
             self.kill()
@@ -82,12 +84,14 @@ class Jogador(Hero):
     fire_rate = 20
     vida = 20
     margin = 5
+    horizontal_move_direction = Directions.RIGHT
     def on_fire(self):
         if self.tick - self.firetick < self.fire_rate:
              return
         self.firetick = self.tick
-        pos = self.pos[0] + 1, self.pos[1]
+        pos = self.pos + self.horizontal_move_direction
         tiro = Tiro(self.controller, pos)
+        tiro.direction = self.horizontal_move_direction
         self.controller.all_actors.add(tiro)
         # self.controller.actors["tiro"].add(tiro)
        
@@ -98,7 +102,9 @@ class Jogador(Hero):
             direction[1] == 1 and self.pos[1] >= scene.height - 1 or 
             direction[1] == -1 and self.pos[1] <= 0):
             return 
-        return super(Jogador, self).move(direction)
+        result = super(Jogador, self).move(direction)
+        if self.move_direction in (Directions.LEFT, Directions.RIGHT):
+            self.horizontal_move_direction = self.move_direction
     
     def update(self):
         super(Jogador, self).update()
@@ -127,7 +133,7 @@ class Madeirafinal(GameObject):
 
 
 def main():
-    scene = Scene("fase2",)
+    scene = Scene("scene0",)
     scene.margin = 0
     scene.window_height = 9
     # scene.window_width = 9
