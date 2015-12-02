@@ -3,22 +3,27 @@
 import sys, os
 sys.path.append(os.getcwd() + "/mapengine/")
 
-from mapengine import Scene, simpleloop
+from mapengine import Scene, simpleloop, Cut
 
-from mapengine.base import Actor, Hero, GameObject, Event, Directions
+from mapengine.base import Actor, Hero, GameObject, Event, Directions, Vector
 
 
 class Zombie(Actor):
     move_rate = 14
     poder = 1
+    direction = Directions.LEFT
+    ativo = False
     def update(self):
+        if self.controller.is_position_on_screen(self.pos):
+            self.ativo = True
         if not self.tick % self.move_rate:
-            self.move((-1, 0))
-            if self.pos[0] < 0:
-                self.kill()
+            self.move(self.direction)
+
         super(Zombie, self).update()
 
-        if self.pos[0] < 0:
+        # Voce perde vida se o zumbi sair da tela:
+        if self.ativo and (not self.controller.is_position_on_screen(self.pos) or self.pos.x == 0 or self.pos.x==self.controller.scene.width - 1):
+            self.kill()
             try:
                 jogador = self.controller.main_character.sprites()[0]
             except (AttributeError, IndexError):
@@ -29,11 +34,13 @@ class Zombie(Actor):
         
     def on_over(self, outro):
          if isinstance(outro, Jogador):
-              outro.tirarvida()
+              outro.tirarvida(self)
               self.kill()
               
          elif isinstance(outro, Tiro):
-              self.kill()
+              self.poder -= 2
+              if self.poder < 0:
+                  self.kill()
               outro.kill()
 
 
@@ -61,13 +68,31 @@ class Chaofase2(GameObject):
 class Zumbi(Zombie):
     pass
 
+class Zumbi_direita(Zombie):
+    direction  = Directions.RIGHT
+    image_sequence = "zumbi.png", 187
+
 class ZumbiForte(Zombie):
-    poder = 5
-    pass
+    poder = 10
+    forca = 20
+    def update(self):
+        jogador = self.controller.main_character.sprites()[0]
+        x, y = 0, 0
+        if self.pos.x < jogador.pos.x:
+            x = 1
+        elif self.pos.x > jogador.pos.x:
+            x = -1
+        if self.pos.y < jogador.pos.y:
+            y = 1
+        elif self.pos.y > jogador.pos.y:
+            y = -1
+        self.direction = Vector((x, y))
+        super(ZumbiForte, self).update()
+            
     
 class Tiro(Actor):
     move_rate = 1
-    direction = None
+    direction = Directions.LEFT
     def update(self):
         self.move(self.direction) 
         super(Tiro, self).update()  
@@ -82,18 +107,21 @@ class Agua(GameObject):
 class Jogador(Hero):
     firetick = 0
     fire_rate = 20
-    vida = 20
+    vida = 30
     margin = 5
     horizontal_move_direction = Directions.RIGHT
     def on_fire(self):
         if self.tick - self.firetick < self.fire_rate:
              return
         self.firetick = self.tick
-        pos = self.pos + self.horizontal_move_direction
+        direcao_tiro = Directions.RIGHT
+        if self.move_direction in (Directions.DOWN, Directions.LEFT):
+            direcao_tiro = Directions.LEFT
+        pos = self.pos + direcao_tiro
         tiro = Tiro(self.controller, pos)
-        tiro.direction = self.horizontal_move_direction
+        tiro.direction = direcao_tiro
         self.controller.all_actors.add(tiro)
-        # self.controller.actors["tiro"].add(tiro)
+
        
     def move(self, direction):
         scene = self.controller.scene
@@ -103,17 +131,16 @@ class Jogador(Hero):
             direction[1] == -1 and self.pos[1] <= 0):
             return 
         result = super(Jogador, self).move(direction)
-        if self.move_direction in (Directions.LEFT, Directions.RIGHT):
-            self.horizontal_move_direction = self.move_direction
     
     def update(self):
         super(Jogador, self).update()
         if self.vida <= 0:
             self.kill()
             
-    def tirarvida(self):
-        self.vida -= 5 
-        print ("Zumbi Te acertou - você perdeu 5 de vida. Vida: {}".format(self.vida))             
+    def tirarvida(self, other):
+        quanto = getattr(other, "forca", 5)
+        self.vida -= quanto
+        print ("Zumbi Te acertou - você perdeu {} de vida. Vida: {}".format(quanto, self.vida))             
     
    
 class Ceu(GameObject):
@@ -134,6 +161,7 @@ class Madeirafinal(GameObject):
 
 def main():
     scene = Scene("scene0",)
+    scene.pre_cut = Cut("Cuidado,Zumbis!")
     scene.margin = 0
     scene.window_height = 9
     # scene.window_width = 9
